@@ -1,4 +1,12 @@
 site_name: TCOMP
 
+theme:
+  name: material
+
 plugins:
   - mkdocstrings
+
+nav:
+  - index.md
+  - how-to-guides.md
+  - code-docs.md

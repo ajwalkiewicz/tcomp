@@ -1,17 +1,10 @@
-# Welcome to MkDocs
+# Welcome to TCOMP project
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+Lorem Ipsum, some description goes here.
 
-## Commands
+## Table of contents
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+1. [How to Guides](how-to-guides.md)
+2. [Code Documentation](code-docs.md)
 
-## Project layout
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
