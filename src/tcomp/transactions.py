@@ -1,14 +1,13 @@
-"""
-Transactions module
+"""Transactions module.
 
-This module contains classes and functions related with transactions
+This module contains classes and functions related with transactions.
 
 Classes:
-    Transaction: basic class that represents single transaction
+    Transaction: Basic class that represents single transaction.
 
 Functions:
-    transactions_from_csv: create a list of transactions from csv file
-    transactions_from_json: create a list of transactions from json file
+    transactions_from_csv: Create a list of transactions from csv file.
+    transactions_from_json: Create a list of transactions from json file.
 """
 
 import csv
@@ -25,9 +24,14 @@ TIMEDELTA = timedelta(days=3)
 class Transaction:
     """Class representing single transaction
 
+    Attributes:
+        date: When transaction was issued.
+        amount: On what amount transaction was done.
+        description: Transaction description.
+
     Raises:
-        TypeError: When using equility operator on different type than
-        Transaction
+        TypeError:
+            When using equility operator on different type than Transaction.
     """
 
     date: str | datetime
@@ -54,7 +58,7 @@ class Transaction:
 
 
 class TransactionCreator(ABC):
-    """Absctract Transaction creator class"""
+    """Absctract Transaction creator class."""
 
     @staticmethod
     @abstractmethod
@@ -64,13 +68,13 @@ class TransactionCreator(ABC):
 class MilleniumTansaction(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
-        """Create transactions from Millenium bank CSV file
+        """Create transactions from Millenium bank CSV file.
 
         Args:
-            row (dict): dict representing a row from csv.DictReader
+            row: Dict representing a row from csv.DictReader.
 
         Returns:
-            Transaction
+            Transaction object
         """
         return Transaction(
             date=row["Data transakcji"],
@@ -82,13 +86,31 @@ class MilleniumTansaction(TransactionCreator):
 class PkoBpTansaction(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
-        """Create transaction from PKO BP bank CSV file
+        """Create transaction from PKO BP bank CSV file.
 
         Args:
-            row (dict): dict representing a row from csv.DictReader
+            row: Dict representing a row from csv.DictReader.
 
         Returns:
-            Transaction
+            Transaction object.
+        """
+        return Transaction(
+            date=row["Data waluty"],
+            amount=float(row["Kwota"]),
+            description=row["Opis transakcji"],
+        )
+
+
+class SantanderTansaction(TransactionCreator):
+    @staticmethod
+    def create_transaction(row: dict) -> Transaction:
+        """Create transaction from Santander PL bank CSV file.
+
+        Args:
+            row: Dict representing a row from csv.DictReader.
+
+        Returns:
+            Transaction object.
         """
         return Transaction(
             date=row["Data waluty"],
@@ -98,13 +120,13 @@ class PkoBpTansaction(TransactionCreator):
 
 
 def transactions_from_json(file: str) -> list[Transaction]:
-    """Create a list of transactions from json file
+    """Create a list of transactions from json file.
 
     Args:
-        file (str): path to json file
+        file: Path to json file.
 
     Returns:
-        list[Transaction]: list of transactions
+        List of transactions
     """
     with open(file, "r") as f:
         transactions = json.load(f)["data"]["transactions"]
@@ -120,13 +142,14 @@ def transactions_from_json(file: str) -> list[Transaction]:
 
 
 def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transaction]:
-    """Create a list of transactions from csv file
+    """Create a list of transactions from csv file.
 
     Args:
-        file (str): path to csv file
+        file: Path to csv file.
+        bank: From what ban csv was generated.
 
     Returns:
-        list[Transaction]: list of transactions
+        List of transactions.
     """
     creator: TransactionCreator = {
         "millenium": MilleniumTansaction,
