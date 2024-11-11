@@ -22,16 +22,15 @@ TIMEDELTA = timedelta(days=3)
 
 @dataclass(slots=True)
 class Transaction:
-    """Class representing single transaction
+    """Class representing a single transaction.
 
     Attributes:
-        date: When transaction was issued.
-        amount: On what amount transaction was done.
-        description: Transaction description.
+        date (str | datetime): The date when the transaction was issued.
+        amount (int | float): The amount involved in the transaction.
+        description (str): A brief description of the transaction.
 
     Raises:
-        TypeError:
-            When using equility operator on different type than Transaction.
+        TypeError: If equality operator is used on a different type than Transaction.
     """
 
     date: str | datetime
@@ -49,13 +48,23 @@ class Transaction:
             self.amount = int(self.amount * 1000)
 
     def __eq__(self, other: "Transaction") -> bool:
+        """Check equality between two Transaction instances.
+
+        Args:
+            other (Transaction): The other transaction to compare against.
+
+        Returns:
+            bool: True if transactions are equivalent, False otherwise.
+
+        Raises:
+            TypeError: If 'other' is not an instance of Transaction.
+        """
         if not isinstance(other, Transaction):
             raise TypeError(
                 f"Cannot compare '{type(self).__name__}' to '{type(other).__name__}'"
             )
-
-        return self.amount == other.amount and self.date - other.date <= self._delta
-
+        
+        return self.amount == other.amount and abs(self.date - other.date) <= self._delta
 
 class TransactionCreator(ABC):
     """Absctract Transaction creator class."""
@@ -65,7 +74,7 @@ class TransactionCreator(ABC):
     def create_transaction(row: dict) -> Transaction: ...
 
 
-class MilleniumTansaction(TransactionCreator):
+class MilleniumTransaction(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create transactions from Millenium bank CSV file.
@@ -83,7 +92,7 @@ class MilleniumTansaction(TransactionCreator):
         )
 
 
-class PkoBpTansaction(TransactionCreator):
+class PkoBpTransaction(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create transaction from PKO BP bank CSV file.
@@ -101,21 +110,22 @@ class PkoBpTansaction(TransactionCreator):
         )
 
 
-class SantanderTansaction(TransactionCreator):
+class SantanderTransaction(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
-        """Create transaction from Santander PL bank CSV file.
+        """Create a Transaction object from a row in a Santander PL bank CSV file.
 
         Args:
-            row: Dict representing a row from csv.DictReader.
+            row (dict): A dictionary representing a row from csv.DictReader.
 
         Returns:
-            Transaction object.
+            A Transaction object populated with the data from the provided row.
         """
+        date = datetime.strptime(row["date"], "%d-%m-%Y")
         return Transaction(
-            date=row["Data waluty"],
-            amount=float(row["Kwota"]),
-            description=row["Opis transakcji"],
+            date=date.isoformat(),
+            amount=float(row["amount"].replace(",", ".")),
+            description=row["place"],
         )
 
 
@@ -135,7 +145,7 @@ def transactions_from_json(file: str) -> list[Transaction]:
         Transaction(
             date=transaction["date"],
             amount=transaction["amount"],
-            description=transaction["memo"],
+            description=f"{transaction['payee_name']} {transaction['memo'] or ''}",
         )
         for transaction in transactions
     ]
@@ -152,11 +162,18 @@ def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transactio
         List of transactions.
     """
     creator: TransactionCreator = {
-        "millenium": MilleniumTansaction,
-        "pkobp": PkoBpTansaction,
-    }.get(bank, MilleniumTansaction)
+        "millenium": MilleniumTransaction,
+        "pkobp": PkoBpTransaction,
+        "santander": SantanderTransaction,
+    }.get(bank, MilleniumTransaction)
+
+    SANTANDER_FIELDS = ["_", "date", "place", "_", "_", "amount"]
 
     with open(file, "r", newline="", encoding="utf-8", errors="replace") as fd:
-        reader = csv.DictReader(fd)
+        if bank == "santander":
+            next(fd)
+            reader = csv.DictReader(fd, fieldnames=SANTANDER_FIELDS)
+        else:
+            reader = csv.DictReader(fd)
 
         return [creator.create_transaction(row) for row in reader]
