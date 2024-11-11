@@ -101,7 +101,7 @@ class PkoBpTansaction(TransactionCreator):
         )
 
 
-class SantanderTransaction(TransactionCreator):
+class SantanderTansaction(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create transaction from Santander PL bank CSV file.
@@ -112,11 +112,10 @@ class SantanderTransaction(TransactionCreator):
         Returns:
             Transaction object.
         """
-        date = datetime.strptime(row["date"], "%d-%m-%Y")
         return Transaction(
-            date=date.isoformat(),
-            amount=float(row["amount"].replace(",", ".")),
-            description=row["place"],
+            date=row["Data waluty"],
+            amount=float(row["Kwota"]),
+            description=row["Opis transakcji"],
         )
 
 
@@ -136,7 +135,7 @@ def transactions_from_json(file: str) -> list[Transaction]:
         Transaction(
             date=transaction["date"],
             amount=transaction["amount"],
-            description=f"{transaction['payee_name']} {transaction['memo'] or ''}",
+            description=transaction["memo"],
         )
         for transaction in transactions
     ]
@@ -155,14 +154,9 @@ def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transactio
     creator: TransactionCreator = {
         "millenium": MilleniumTansaction,
         "pkobp": PkoBpTansaction,
-        "santander": SantanderTransaction,
     }.get(bank, MilleniumTansaction)
 
     with open(file, "r", newline="", encoding="utf-8", errors="replace") as fd:
-        if bank == "santander":
-            next(fd)
-            reader = csv.DictReader(fd, fieldnames=["_", "date", "place", "_", "_", "amount"])
-        else:
-            reader = csv.DictReader(fd)
+        reader = csv.DictReader(fd)
 
         return [creator.create_transaction(row) for row in reader]
