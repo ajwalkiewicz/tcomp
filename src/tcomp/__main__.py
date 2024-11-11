@@ -55,7 +55,7 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         default="millenium",
         required=False,
-        choices=["millenium", "pkobp"],
+        choices=["millenium", "pkobp", "santander"],
         help="from what bank is the csv file, defaults to millenium",
     )
 
