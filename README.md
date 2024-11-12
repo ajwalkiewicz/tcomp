@@ -25,7 +25,8 @@ pip install -r requirements.txt
 The tool can be run from the command line. The basic syntax is as follows:
 
 ```bash
-python -m main [file_a] [file_b] [--bank ]
+cd src
+python -m tcomp [file_a] [file_b] [--bank]
 ```
 
 ### Arguments
@@ -42,7 +43,7 @@ python -m main [file_a] [file_b] [--bank ]
 To compare a YNAB JSON file with a bank CSV file, you might run:
 
 ```bash
-python -m main ynab_transactions.json bank_transactions.csv --bank millenium
+python -m tcomp ynab_transactions.json bank_transactions.csv --bank millenium
 ```
 
 ## Features
