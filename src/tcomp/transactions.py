@@ -39,9 +39,7 @@ class Transaction:
     _delta: timedelta = field(default=TIMEDELTA, init=False, repr=False)
 
     def __post_init__(self):
-        if isinstance(self.date, datetime):
-            self.date = self.date.isoformat()
-        else:
+        if isinstance(self.date, str):
             self.date = datetime.fromisoformat(self.date)
 
         if isinstance(self.amount, float):
