@@ -20,7 +20,7 @@ TIMEDELTA = timedelta(days=3)
 """Default timedelat - used for equility operator in Transaction class"""
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class Transaction:
     """Class representing a single transaction.
 
@@ -40,13 +40,16 @@ class Transaction:
 
     def __post_init__(self):
         if isinstance(self.date, str):
-            self.date = datetime.fromisoformat(self.date)
+            object.__setattr__(self, "date", datetime.fromisoformat(self.date))
 
         if isinstance(self.amount, float):
-            self.amount = int(self.amount * 1000)
+            object.__setattr__(self, "amount", int(self.amount * 1000))
 
     def __eq__(self, other: "Transaction") -> bool:
         """Check equality between two Transaction instances.
+
+        Transactions are equal if their ammount are the same and the difference
+        between dates is smaller or equal to _delta.
 
         Args:
             other (Transaction): The other transaction to compare against.
@@ -63,6 +66,14 @@ class Transaction:
             )
         
         return self.amount == other.amount and abs(self.date - other.date) <= self._delta
+    
+    def __hash__(self) -> int:
+        """Return Transaction hash
+
+        Each transaction has its own unique hash which is equal its memory address.
+        In practice it means equal Transaction instances are never identical.
+        """
+        return id(self)
 
 class TransactionCreator(ABC):
     """Absctract Transaction creator class."""
@@ -72,7 +83,7 @@ class TransactionCreator(ABC):
     def create_transaction(row: dict) -> Transaction: ...
 
 
-class MilleniumTransaction(TransactionCreator):
+class MilleniumTransactionCreator(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create transactions from Millenium bank CSV file.
@@ -90,7 +101,7 @@ class MilleniumTransaction(TransactionCreator):
         )
 
 
-class PkoBpTransaction(TransactionCreator):
+class PkoBpTransactionCreator(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create transaction from PKO BP bank CSV file.
@@ -108,7 +119,7 @@ class PkoBpTransaction(TransactionCreator):
         )
 
 
-class SantanderTransaction(TransactionCreator):
+class SantanderTransactionCreator(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create a Transaction object from a row in a Santander PL bank CSV file.
@@ -160,10 +171,10 @@ def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transactio
         List of transactions.
     """
     creator: TransactionCreator = {
-        "millenium": MilleniumTransaction,
-        "pkobp": PkoBpTransaction,
-        "santander": SantanderTransaction,
-    }.get(bank, MilleniumTransaction)
+        "millenium": MilleniumTransactionCreator,
+        "pkobp": PkoBpTransactionCreator,
+        "santander": SantanderTransactionCreator,
+    }.get(bank, MilleniumTransactionCreator)
 
     SANTANDER_FIELDS = ["_", "date", "place", "_", "_", "amount"]
 

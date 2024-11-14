@@ -3,9 +3,10 @@
 Tests generated with Bito AI: https://bito.ai/
 Reviewd by human and sourcery.ai: https://sourcery.ai/
 """
+import dataclasses
 import unittest
 from datetime import datetime
-from tcomp.transactions import SantanderTransaction, Transaction
+from tcomp.transactions import SantanderTransactionCreator, Transaction
 
 
 class TestTransaction(unittest.TestCase):
@@ -19,9 +20,11 @@ class TestTransaction(unittest.TestCase):
     def test_transaction_initialization(self):
         """Test if Transaction is initialized correctly."""
         self.assertEqual(self.transaction1.date, datetime.fromisoformat('2023-10-01T12:00:00'))
-        self.assertEqual(self.transaction1.amount, 100500)  # Amount converted to int
+        self.assertEqual(self.transaction1.amount, 100500)
         self.assertEqual(self.transaction1.description, 'Test Transaction 1')
-
+        negative_transaction = Transaction(date='2023-10-01T12:00:00', amount=-50.75, description='Negative Transaction')
+        self.assertEqual(negative_transaction.amount, -50750)
+        
     def test_transaction_equality_within_delta(self):
         """Test equality of transactions within the defined time delta."""
         self.assertEqual(self.transaction1, self.transaction2)
@@ -57,8 +60,10 @@ class TestTransaction(unittest.TestCase):
 
     def test_transaction_edge_case(self):
         """Test edge case with a date exactly on the boundary of the delta."""
-        transaction = Transaction(date='2023-10-04T12:00:00', amount=100.50, description='Boundary Transaction')
-        self.assertEqual(self.transaction1, transaction)
+        transaction_on_boundary = Transaction(date='2023-10-04T12:00:00', amount=100.50, description='Boundary Transaction')
+        transaction_outside_boundary = Transaction(date='2023-10-04T12:00:01', amount=100.50, description='Outside Boundary')
+        self.assertEqual(self.transaction1, transaction_on_boundary)
+        self.assertNotEqual(self.transaction1, transaction_outside_boundary)
 
     def test_transaction_remove_fourth_decimal_digit(self):
         """
@@ -81,6 +86,33 @@ class TestTransaction(unittest.TestCase):
         
         self.assertEqual(transaction1, transaction2)
 
+    def test_transactions_are_equal_but_not_identical(self):
+        """Test that Transactions are equal but not identical"""
+        transaction1 = Transaction(date='2023-10-01T12:00:00', amount=100.50, description='Hash Test 1')
+        transaction2 = Transaction(date='2023-10-01T12:00:00', amount=100.50, description='Hash Test 1')
+        
+        # Transactions are equal
+        self.assertTrue(transaction1 == transaction2)
+        
+        # But not identical
+        self.assertFalse(transaction1 is transaction2)
+
+    def test_transactions_are_hashable(self):
+        """Test that Transaction is hashable"""
+        transaction = Transaction(date='2023-10-01T12:00:00', amount=100.50, description='Hash Test')
+        self.assertTrue(hash(transaction) == id(transaction))
+        {transaction: "test hash"}
+
+    def test_that_transaction_is_frozen(self):
+        """Test that Transaction attributes cannot be changed after initialization"""
+        transaction = Transaction(date='2023-10-01T12:00:00', amount=100.50, description='Frozen Test')
+        with self.assertRaises(dataclasses.FrozenInstanceError):
+            transaction.amount = 1005000
+        with self.assertRaises(dataclasses.FrozenInstanceError):
+            transaction.date = '2023-10-02T12:00:00'
+        with self.assertRaises(dataclasses.FrozenInstanceError):
+            transaction.description = "New description"
+
 
 
 class TestSantanderTransaction(unittest.TestCase):
@@ -91,7 +123,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "amount": "100,50",
             "place": "Supermarket"
         }
-        transaction = SantanderTransaction.create_transaction(row)
+        transaction = SantanderTransactionCreator.create_transaction(row)
         self.assertIsInstance(transaction, Transaction)
         self.assertEqual(transaction.date, datetime.fromisoformat("2023-03-15"))
         self.assertEqual(transaction.amount, 100500)
@@ -104,7 +136,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "place": "Supermarket"
         }
         with self.assertRaises(ValueError):
-            SantanderTransaction.create_transaction(row)
+            SantanderTransactionCreator.create_transaction(row)
 
     def test_create_transaction_invalid_amount(self):
         row = {
@@ -113,7 +145,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "place": "Supermarket"
         }
         with self.assertRaises(ValueError):
-            SantanderTransaction.create_transaction(row)
+            SantanderTransactionCreator.create_transaction(row)
 
     def test_create_transaction_empty_place(self):
         row = {
@@ -121,7 +153,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "amount": "100,50",
             "place": ""  # Empty place
         }
-        transaction = SantanderTransaction.create_transaction(row)
+        transaction = SantanderTransactionCreator.create_transaction(row)
         self.assertEqual(transaction.description, "")  # Should handle empty place
 
     def test_create_transaction_large_amount(self):
@@ -130,7 +162,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "amount": "1000000,50",  # Large amount
             "place": "Bank Deposit"
         }
-        transaction = SantanderTransaction.create_transaction(row)
+        transaction = SantanderTransactionCreator.create_transaction(row)
         self.assertEqual(transaction.amount, 1000000500)
 
     def test_create_transaction_negative_amount(self):
@@ -139,7 +171,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "amount": "-100,50",  # Negative amount
             "place": "Refund"
         }
-        transaction = SantanderTransaction.create_transaction(row)
+        transaction = SantanderTransactionCreator.create_transaction(row)
         self.assertEqual(transaction.amount, -100500)
 
     def test_create_transaction_boundary_date(self):
@@ -148,7 +180,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "amount": "50,00",
             "place": "Leap Year Test"
         }
-        transaction = SantanderTransaction.create_transaction(row)
+        transaction = SantanderTransactionCreator.create_transaction(row)
         self.assertEqual(transaction.date, datetime.fromisoformat("2020-02-29"))
 
     def test_create_transaction_nonexistent_date(self):
@@ -158,7 +190,7 @@ class TestSantanderTransaction(unittest.TestCase):
             "place": "Invalid Date Test"
         }
         with self.assertRaises(ValueError):
-            SantanderTransaction.create_transaction(row)
+            SantanderTransactionCreator.create_transaction(row)
 
 if __name__ == '__main__':
     unittest.main()
