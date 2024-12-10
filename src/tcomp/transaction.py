@@ -13,8 +13,10 @@ Functions:
 import csv
 import json
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import field
 from datetime import datetime, timedelta
+
+from pydantic.dataclasses import dataclass
 
 TIMEDELTA = timedelta(days=3)
 """Default timedelat - used for equility operator in Transaction class"""
@@ -35,7 +37,7 @@ class Transaction:
 
     date: str | datetime
     amount: int | float
-    description: str
+    description: str = ""
     _delta: timedelta = field(default=TIMEDELTA, init=False, repr=False)
 
     def __post_init__(self):
@@ -64,9 +66,11 @@ class Transaction:
             raise TypeError(
                 f"Cannot compare '{type(self).__name__}' to '{type(other).__name__}'"
             )
-        
-        return self.amount == other.amount and abs(self.date - other.date) <= self._delta
-    
+
+        return (
+            self.amount == other.amount and abs(self.date - other.date) <= self._delta
+        )
+
     def __hash__(self) -> int:
         """Return Transaction hash
 
@@ -74,6 +78,7 @@ class Transaction:
         In practice it means equal Transaction instances are never identical.
         """
         return id(self)
+
 
 class TransactionCreator(ABC):
     """Absctract Transaction creator class."""
@@ -174,7 +179,10 @@ def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transactio
         "millenium": MilleniumTransactionCreator,
         "pkobp": PkoBpTransactionCreator,
         "santander": SantanderTransactionCreator,
-    }.get(bank, MilleniumTransactionCreator)
+    }.get(bank)
+
+    if creator is None:
+        raise UnsupportedBankError(f"Bank not supported: '{bank}'")
 
     SANTANDER_FIELDS = ["_", "date", "place", "_", "_", "amount"]
 
