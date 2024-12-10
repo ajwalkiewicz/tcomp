@@ -1,42 +1,19 @@
+"""
+This script compares transactions from two different files: a JSON file and a CSV file. 
+It imports necessary modules, defines a main function that reads transactions from both 
+files, compares them, and prints out the differences in a formatted table. 
+Transactions present in the JSON file but not in the CSV file, and vice versa, 
+are displayed with their date, amount (in thousands), and description.
+"""
+
 import argparse
 
 from tabulate import tabulate
 
-from tcomp import compare, transactions
+from tcomp import compare, transaction
 
 
-def main(file_a: str, file_b: str, bank: str = "millenium"):
-    transactions_a = transactions.transactions_from_json(file_a)
-    transactions_b = transactions.transactions_from_csv(file_b, bank=bank)
-
-    diff = compare(transactions_a, transactions_b)
-
-    print(f"# In {file_a} but not in {file_b}:")
-    print(
-        tabulate(
-            [
-                (transaction.date, transaction.amount / 1000, transaction.description)
-                for transaction in diff.atob
-            ],
-            headers=["Date", "Amount", "Description"],
-            tablefmt="github",
-        )
-    )
-
-    print(f"\n# In {file_b} but not in {file_a}:")
-    print(
-        tabulate(
-            [
-                (transaction.date, transaction.amount / 1000, transaction.description)
-                for transaction in diff.btoa
-            ],
-            headers=["Date", "Amount", "Description"],
-            tablefmt="github",
-        )
-    )
-
-
-def parse_arguments() -> argparse.Namespace:
+def parse_arguments(argv: None | list[str] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Compare transactions between YNAB and other bank account"
     )
@@ -59,10 +36,42 @@ def parse_arguments() -> argparse.Namespace:
         help="from what bank is the csv file, defaults to millenium",
     )
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def main(argv: None | list[str] = None):
+    args = parse_arguments(argv=argv)
+    file_a, file_b, bank = args.file_a, args.file_b, args.bank
+
+    transactions_a = transaction.transactions_from_json(file_a)
+    transactions_b = transaction.transactions_from_csv(file_b, bank=bank)
+
+    diff = compare(transactions_a, transactions_b)
+
+    print(f"# In {file_a} but not in {file_b}:")
+    print(
+        tabulate(
+            [
+                (transaction.date, transaction.amount / 1000, transaction.description)
+                for transaction in diff.only_in_a
+            ],
+            headers=["Date", "Amount", "Description"],
+            tablefmt="github",
+        )
+    )
+
+    print(f"\n# In {file_b} but not in {file_a}:")
+    print(
+        tabulate(
+            [
+                (transaction.date, transaction.amount / 1000, transaction.description)
+                for transaction in diff.only_in_b
+            ],
+            headers=["Date", "Amount", "Description"],
+            tablefmt="github",
+        )
+    )
 
 
 if __name__ == "__main__":
-    args = parse_arguments()
-    file_a, file_b, bank = args.file_a, args.file_b, args.bank
-    main(file_a, file_b, bank)
+    exit(main())
