@@ -1,10 +1,11 @@
 import re
+import sys
 import unittest
 from io import StringIO
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from tcomp.__main__ import SUPPORTED_BANKS, main
-from tcomp.error import UnsupportedBankError
 from tcomp.transaction import Transaction
 
 
@@ -127,6 +128,8 @@ class TestMainFunction(unittest.TestCase):
         self,
         mock_stdout: Mock,
     ):
+        script_name = Path(sys.argv[0]).name
+
         self.maxDiff = None
         with self.assertRaises(SystemExit):
             main(["file_a.json", "file_b.csv", "--bank=invalid_bank"])
@@ -135,8 +138,8 @@ class TestMainFunction(unittest.TestCase):
         supported_banks_choice = ", ".join(f"'{bank}'" for bank in SUPPORTED_BANKS)
 
         expected_putput = (
-            f"usage: run_pytest_script.py [-h] [--bank {supported_bank_options}] file_a file_b\n"
-            f"run_pytest_script.py: error: argument --bank: invalid choice: 'invalid_bank' (choose from {supported_banks_choice})\n"
+            f"usage: {script_name} [-h] [--bank {supported_bank_options}] file_a file_b\n"
+            f"{script_name}: error: argument --bank: invalid choice: 'invalid_bank' (choose from {supported_banks_choice})\n"
         )
 
         actual_output_normalized = re.sub(r"\s+", " ", mock_stdout.getvalue().strip())
