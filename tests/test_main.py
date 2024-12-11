@@ -1,8 +1,10 @@
+import re
 import unittest
 from io import StringIO
 from unittest.mock import Mock, patch
 
-from tcomp.__main__ import main
+from tcomp.__main__ import SUPPORTED_BANKS, main
+from tcomp.error import UnsupportedBankError
 from tcomp.transaction import Transaction
 
 
@@ -119,3 +121,25 @@ class TestMainFunction(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             main(["file_a.json", "invalid_file_b.csv", "--bank=millenium"])
+
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_main_function_unsupported_bank(
+        self,
+        mock_stdout: Mock,
+    ):
+        self.maxDiff = None
+        with self.assertRaises(SystemExit):
+            main(["file_a.json", "file_b.csv", "--bank=invalid_bank"])
+
+        supported_bank_options = r"{" + ",".join(SUPPORTED_BANKS) + r"}"
+        supported_banks_choice = ", ".join(f"'{bank}'" for bank in SUPPORTED_BANKS)
+
+        expected_putput = (
+            f"usage: run_pytest_script.py [-h] [--bank {supported_bank_options}] file_a file_b\n"
+            f"run_pytest_script.py: error: argument --bank: invalid choice: 'invalid_bank' (choose from {supported_banks_choice})\n"
+        )
+
+        actual_output_normalized = re.sub(r"\s+", " ", mock_stdout.getvalue().strip())
+        expected_putput_normalized = re.sub(r"\s+", " ", expected_putput.strip())
+
+        self.assertEqual(actual_output_normalized, expected_putput_normalized)

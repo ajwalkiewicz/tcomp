@@ -10,7 +10,7 @@ import argparse
 
 from tabulate import tabulate
 
-from tcomp import compare, transaction
+from tcomp import SUPPORTED_BANKS, compare, transaction
 
 
 def parse_arguments(argv: None | list[str] = None) -> argparse.Namespace:
@@ -32,7 +32,7 @@ def parse_arguments(argv: None | list[str] = None) -> argparse.Namespace:
         type=str,
         default="millenium",
         required=False,
-        choices=["millenium", "pkobp", "santander"],
+        choices=SUPPORTED_BANKS,
         help="from what bank is the csv file, defaults to millenium",
     )
 

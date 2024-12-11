@@ -18,6 +18,8 @@ from datetime import datetime, timedelta
 
 from pydantic.dataclasses import dataclass
 
+from tcomp.error import UnsupportedBankError
+
 TIMEDELTA = timedelta(days=3)
 """Default timedelat - used for equility operator in Transaction class"""
 

@@ -5,19 +5,17 @@ Reviewd by human and sourcery.ai: https://sourcery.ai/
 """
 
 import dataclasses
-import json
 import unittest
 from datetime import datetime
 from unittest.mock import mock_open, patch
 
-import pydantic
-import pydantic.error_wrappers
-
-import tcomp
-import tcomp.error
+from tcomp.error import UnsupportedBankError
 from tcomp.transaction import (
+    MilleniumTransactionCreator,
+    PkoBpTransactionCreator,
     SantanderTransactionCreator,
     Transaction,
+    transactions_from_csv,
     transactions_from_json,
 )
 
@@ -301,3 +299,66 @@ class TestTransactionsFromJson(unittest.TestCase):
         # Test handling of file not found error
         with self.assertRaises(FileNotFoundError):
             transactions_from_json("non_existent_file.json")
+
+
+class TestTransactionsFromCsv(unittest.TestCase):
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="Data transakcji,Obciążenia,Opis\n2023-01-01,100,Test Place\n",
+    )
+    def test_transactions_from_csv_millenium(self, mock_file):
+        transactions = transactions_from_csv("dummy_path.csv", "millenium")
+        self.assertEqual(len(transactions), 1)
+        self.assertEqual(transactions[0].date, datetime.fromisoformat("2023-01-01"))
+        self.assertEqual(transactions[0].amount, 100000)
+        self.assertEqual(transactions[0].description, "Test Place")
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="Data waluty,Kwota,Opis transakcji\n2023-01-01,100.00,Test Place\n",
+    )
+    def test_transactions_from_csv_pkobp(self, mock_file):
+        transactions = transactions_from_csv("dummy_path.csv", "pkobp")
+        self.assertEqual(len(transactions), 1)
+        self.assertEqual(transactions[0].date, datetime.fromisoformat("2023-01-01"))
+        self.assertEqual(transactions[0].description, "Test Place")
+        self.assertEqual(transactions[0].amount, 100000)
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='first,row,is,skipped,anyway\n_,01-01-2023,Test Place,_,_,"100,00"\n',
+    )
+    def test_transactions_from_csv_santander(self, mock_file):
+        transactions = transactions_from_csv("dummy_path.csv", "santander")
+        self.assertEqual(len(transactions), 1)
+        self.assertEqual(transactions[0].date, datetime.fromisoformat("2023-01-01"))
+        self.assertEqual(transactions[0].description, "Test Place")
+        self.assertEqual(transactions[0].amount, 100000)
+
+    @patch("builtins.open", new_callable=mock_open, read_data="")
+    def test_transactions_from_csv_empty_file(self, mock_file):
+
+        transactions = transactions_from_csv("dummy_path.csv", "millenium")
+        self.assertEqual(transactions, [])
+
+    def test_transactions_from_csv_unsupported_bank(self):
+        with self.assertRaises(UnsupportedBankError):
+            transactions_from_csv("dummy_path.csv", "unsupported_bank")
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="Some,invalid,css\n2023-01-01,100\n",
+    )
+    def test_transactions_from_csv_invalid_data(self, mock_file):
+        with self.assertRaises(KeyError):
+            transactions_from_csv("dummy_path.csv", "millenium")
+
+        with self.assertRaises(KeyError):
+            transactions_from_csv("dummy_path.csv", "pkobp")
+
+        # TODO: add test for santander
