@@ -18,4 +18,4 @@ from tcomp.transaction import Transaction, transactions_from_csv, transactions_f
 __version__ = "0.0.1"
 __author__ = "Adam Walkiewicz"
 
-SUPPORTED_BANKS = ("millenium", "pkobp", "santander")
+SUPPORTED_BANKS = ("millenium", "pkobp", "santander", "revolut")

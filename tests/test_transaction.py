@@ -13,6 +13,7 @@ from tcomp.error import UnsupportedBankError
 from tcomp.transaction import (
     MilleniumTransactionCreator,
     PkoBpTransactionCreator,
+    RevolutTransactionCreator,
     SantanderTransactionCreator,
     Transaction,
     transactions_from_csv,
@@ -235,6 +236,93 @@ class TestSantanderTransaction(unittest.TestCase):
         }
         with self.assertRaises(ValueError):
             SantanderTransactionCreator.create_transaction(row)
+
+
+class TestRevolutTransaction(unittest.TestCase):
+    transaction_creator = RevolutTransactionCreator
+
+    def test_create_transaction_valid_data(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "2024-11-01 02:00:12",
+            "Description": "Test description",
+            "Amount": "174.05",
+        }
+        transaction = self.transaction_creator.create_transaction(row)
+        self.assertIsInstance(transaction, Transaction)
+        self.assertEqual(transaction.date, datetime.fromisoformat("2024-11-01 02:00:12"))
+        self.assertEqual(transaction.amount, 174050)
+        self.assertEqual(transaction.description, "Test description")
+
+    def test_create_transaction_invalid_date_format(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "03-15-2023", # Invalid date format
+            "Description": "Test description",
+            "Amount": "-174.05",
+        }
+        with self.assertRaises(ValueError):
+            self.transaction_creator.create_transaction(row)
+
+    def test_create_transaction_invalid_amount(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "2024-11-01 02:00:12",
+            "Description": "Test description",
+            "Amount": "Invalid amount",  # Invalid amount
+        }
+        with self.assertRaises(ValueError):
+            self.transaction_creator.create_transaction(row)
+
+    def test_create_transaction_empty_place(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "2024-11-01 02:00:12",
+            "Description": "",  # Empty description
+            "Amount": "-174.05",
+        }
+        transaction = self.transaction_creator.create_transaction(row)
+        self.assertEqual(transaction.description, "")  # Should handle empty place
+
+    def test_create_transaction_large_amount(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "2024-11-01 02:00:12",
+            "Description": "Test description",
+            "Amount": "1000000.50",  # Large amount
+        }
+        transaction = self.transaction_creator.create_transaction(row)
+        self.assertEqual(transaction.amount, 1000000500)
+
+    def test_create_transaction_negative_amount(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "2024-11-01 02:00:12",
+            "Description": "Test description",
+            "Amount": "-174.05",  # Negative amount
+        }
+        transaction = self.transaction_creator.create_transaction(row)
+        self.assertEqual(transaction.amount, -174050)
+
+    def test_create_transaction_boundary_date(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "2020-02-29 02:00:12", # Leap year
+            "Description": "Test description",
+            "Amount": "-174.05",
+        }
+        transaction = self.transaction_creator.create_transaction(row)
+        self.assertEqual(transaction.date, datetime.fromisoformat("2020-02-29 02:00:12"))
+
+    def test_create_transaction_nonexistent_date(self):
+        row = {
+            "Product": "Current",
+            "Started Date": "2024-11-31 02:00:12",
+            "Description": "Test description",
+            "Amount": "-174.05",
+        }
+        with self.assertRaises(ValueError):
+            self.transaction_creator.create_transaction(row)
 
 
 class TestTransactionsFromJson(unittest.TestCase):
