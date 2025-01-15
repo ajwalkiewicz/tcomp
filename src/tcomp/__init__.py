@@ -4,7 +4,7 @@ This module contains main TCOMP functions and classes.
 
 Classes:
     Transaction: Class representing single transaction.
-    Diff: Class encapsulating transactions that differes.
+    Diff: Class encapsulating transactions that differs.
 
 Functions:
     compare: Compares 2 list of transactions.
@@ -18,4 +18,12 @@ from tcomp.transaction import Transaction, transactions_from_csv, transactions_f
 __version__ = "0.0.1"
 __author__ = "Adam Walkiewicz"
 
-SUPPORTED_BANKS = ("millenium", "pkobp", "santander", "revolut")
+__all__ = [
+    "Diff", 
+    "compare",
+    "Transaction",
+    "transactions_from_csv",
+    "transactions_from_json",
+]
+
+SUPPORTED_BANKS = ("millennium", "pkobp", "santander", "revolut")

@@ -1,7 +1,7 @@
 """Tests for Transaction module
 
 Tests generated with Bito AI: https://bito.ai/
-Reviewd by human and sourcery.ai: https://sourcery.ai/
+Reviewed by human and sourcery.ai: https://sourcery.ai/
 """
 
 import dataclasses
@@ -11,8 +11,6 @@ from unittest.mock import mock_open, patch
 
 from tcomp.error import UnsupportedBankError
 from tcomp.transaction import (
-    MilleniumTransactionCreator,
-    PkoBpTransactionCreator,
     RevolutTransactionCreator,
     SantanderTransactionCreator,
     Transaction,
@@ -22,7 +20,6 @@ from tcomp.transaction import (
 
 
 class TestTransaction(unittest.TestCase):
-
     def setUp(self):
         """Set up a valid Transaction instance for testing."""
         self.transaction1 = Transaction(
@@ -32,6 +29,9 @@ class TestTransaction(unittest.TestCase):
             date="2023-10-02T12:00:00", amount=100.50, description="Test Transaction 2"
         )
         self.transaction3 = Transaction(
+            date="2023-10-01T12:00:00", amount=200.00, description="Test Transaction 3"
+        )
+        self.transaction4 = Transaction(
             date="2023-10-01T12:00:00", amount=200.00, description="Test Transaction 3"
         )
 
@@ -169,7 +169,6 @@ class TestTransaction(unittest.TestCase):
 
 
 class TestSantanderTransaction(unittest.TestCase):
-
     def test_create_transaction_valid_data(self):
         row = {"date": "15-03-2023", "amount": "100,50", "place": "Supermarket"}
         transaction = SantanderTransactionCreator.create_transaction(row)
@@ -326,7 +325,6 @@ class TestRevolutTransaction(unittest.TestCase):
 
 
 class TestTransactionsFromJson(unittest.TestCase):
-
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -390,14 +388,13 @@ class TestTransactionsFromJson(unittest.TestCase):
 
 
 class TestTransactionsFromCsv(unittest.TestCase):
-
     @patch(
         "builtins.open",
         new_callable=mock_open,
         read_data="Data transakcji,Obciążenia,Opis\n2023-01-01,100,Test Place\n",
     )
-    def test_transactions_from_csv_millenium(self, mock_file):
-        transactions = transactions_from_csv("dummy_path.csv", "millenium")
+    def test_transactions_from_csv_millennium(self, mock_file):
+        transactions = transactions_from_csv("dummy_path.csv", "millennium")
         self.assertEqual(len(transactions), 1)
         self.assertEqual(transactions[0].date, datetime.fromisoformat("2023-01-01"))
         self.assertEqual(transactions[0].amount, 100000)
@@ -441,8 +438,7 @@ class TestTransactionsFromCsv(unittest.TestCase):
 
     @patch("builtins.open", new_callable=mock_open, read_data="")
     def test_transactions_from_csv_empty_file(self, mock_file):
-
-        transactions = transactions_from_csv("dummy_path.csv", "millenium")
+        transactions = transactions_from_csv("dummy_path.csv", "millennium")
         self.assertEqual(transactions, [])
 
     def test_transactions_from_csv_unsupported_bank(self):
@@ -456,7 +452,7 @@ class TestTransactionsFromCsv(unittest.TestCase):
     )
     def test_transactions_from_csv_invalid_data(self, mock_file):
         with self.assertRaises(KeyError):
-            transactions_from_csv("dummy_path.csv", "millenium")
+            transactions_from_csv("dummy_path.csv", "millennium")
 
         with self.assertRaises(KeyError):
             transactions_from_csv("dummy_path.csv", "pkobp")

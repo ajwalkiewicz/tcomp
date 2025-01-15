@@ -33,8 +33,8 @@ python -m tcomp [file_a] [file_b] [--bank]
 
 - `file_a`: The path to a JSON file containing YNAB transaction history.
 - `file_b`: The path to a CSV file containing transactions from the bank.
-- `--bank`: (Optional) Specify the bank for the CSV file. Defaults to "millenium". The available options are:
-  - `millenium`
+- `--bank`: (Optional) Specify the bank for the CSV file. Defaults to "millennium". The available options are:
+  - `millennium`
   - `pkobp`
   - `santander`
 
@@ -43,7 +43,7 @@ python -m tcomp [file_a] [file_b] [--bank]
 To compare a YNAB JSON file with a bank CSV file, you might run:
 
 ```bash
-python -m tcomp ynab_transactions.json bank_transactions.csv --bank millenium
+python -m tcomp ynab_transactions.json bank_transactions.csv --bank millennium
 ```
 
 ## Features
