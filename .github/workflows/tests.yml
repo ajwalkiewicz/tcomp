@@ -32,4 +32,4 @@ jobs:
         make check
     - name: Test with pytest
       run: |
-        make test
+        uv run pytest
