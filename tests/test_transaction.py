@@ -427,6 +427,18 @@ class TestTransactionsFromCsv(unittest.TestCase):
         self.assertEqual(transactions[0].description, "Test Place")
         self.assertEqual(transactions[0].amount, 100000)
 
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance\nCARD_PAYMENT,Current,2024-11-30 07:46:10,2024-12-01 08:35:20,Test Place,100,00,0.00,PLN,COMPLETED,648.00',
+    )
+    def test_transactions_from_csv_revolut(self, mock_file):
+        transactions = transactions_from_csv("dummy_path.csv", "revolut")
+        self.assertEqual(len(transactions), 1)
+        self.assertEqual(transactions[0].date, datetime.fromisoformat("2024-11-30 07:46:10"))
+        self.assertEqual(transactions[0].description, "Test Place")
+        self.assertEqual(transactions[0].amount, 100000)
+
     @patch("builtins.open", new_callable=mock_open, read_data="")
     def test_transactions_from_csv_empty_file(self, mock_file):
 

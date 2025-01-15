@@ -148,7 +148,7 @@ class SantanderTransactionCreator(TransactionCreator):
 class RevolutTransactionCreator(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
-        """Create a Transaction object from a row in a Santander PL bank CSV file.
+        """Create a Transaction object from a row in a Revolut PL bank CSV file.
 
         Args:
             row (dict): A dictionary representing a row from csv.DictReader.
@@ -198,6 +198,7 @@ def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transactio
     creator: TransactionCreator = {
         "millenium": MilleniumTransactionCreator,
         "pkobp": PkoBpTransactionCreator,
+        "revolut": RevolutTransactionCreator,
         "santander": SantanderTransactionCreator,
     }.get(bank)
 
