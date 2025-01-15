@@ -75,8 +75,7 @@ class TestTransaction(unittest.TestCase):
 
     def test_transaction_invalid_comparison(self):
         """Test comparison with a non-Transaction instance."""
-        with self.assertRaises(TypeError):
-            self.transaction1 == "Not a Transaction"
+        self.assertNotEqual(self.transaction1, "Not a Transaction")
 
     def test_transaction_amount_as_float(self):
         """Test if the amount can be initialized as a float and converted correctly."""

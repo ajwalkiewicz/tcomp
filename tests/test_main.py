@@ -10,6 +10,20 @@ from tcomp.__main__ import SUPPORTED_BANKS, main
 from tcomp.transaction import Transaction
 
 
+def get_supported_banks_choice():
+    """
+    Helper function to get a string with supported banks choice
+    that argparse will return on the console when incorrect
+    bank is passed.
+
+    In python 3.12.8 argparse parse differently the choices
+    See this PR: https://github.com/python/cpython/pull/117766
+    """
+    if sys.version_info < (3, 12, 8):
+        return ", ".join(f"'{bank}'" for bank in SUPPORTED_BANKS)
+    else:
+        return ", ".join(f"{bank}" for bank in SUPPORTED_BANKS)
+
 class TestMainFunction(unittest.TestCase):
     @patch("sys.stdout", new_callable=StringIO)
     @patch("tcomp.transaction.transactions_from_json")
@@ -135,13 +149,7 @@ class TestMainFunction(unittest.TestCase):
             main(["file_a.json", "file_b.csv", "--bank=invalid_bank"])
 
         supported_bank_options = r"{" + ",".join(SUPPORTED_BANKS) + r"}"
-
-        # In python 3.12.8 argparse parse differently the choices
-        # See this PR: https://github.com/python/cpython/pull/117766
-        if sys.version_info < (3, 12, 8):
-            supported_banks_choice = ", ".join(f"'{bank}'" for bank in SUPPORTED_BANKS)
-        else:
-            supported_banks_choice = ", ".join(f"{bank}" for bank in SUPPORTED_BANKS)
+        supported_banks_choice = get_supported_banks_choice()
 
         expected_output = (
             f"usage: {script_name} [-h] [--bank {supported_bank_options}] file_a file_b\n"

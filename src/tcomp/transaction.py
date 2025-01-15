@@ -56,14 +56,9 @@ class Transaction:
 
         Returns:
             bool: True if transactions are equivalent, False otherwise.
-
-        Raises:
-            TypeError: If 'other' is not an instance of Transaction.
         """
-        if not isinstance(other, Transaction):
-            raise TypeError(
-                f"Cannot compare '{type(self).__name__}' to '{type(other).__name__}'"
-            )
+        if not isinstance(other, type(self)):
+            return False
 
         return (
             self.amount == other.amount and abs(self.date - other.date) <= self._delta
