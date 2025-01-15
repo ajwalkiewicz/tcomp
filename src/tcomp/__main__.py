@@ -1,8 +1,8 @@
 """
-This script compares transactions from two different files: a JSON file and a CSV file. 
-It imports necessary modules, defines a main function that reads transactions from both 
-files, compares them, and prints out the differences in a formatted table. 
-Transactions present in the JSON file but not in the CSV file, and vice versa, 
+This script compares transactions from two different files: a JSON file and a CSV file.
+It imports necessary modules, defines a main function that reads transactions from both
+files, compares them, and prints out the differences in a formatted table.
+Transactions present in the JSON file but not in the CSV file, and vice versa,
 are displayed with their date, amount (in thousands), and description.
 """
 
@@ -30,10 +30,10 @@ def parse_arguments(argv: None | list[str] = None) -> argparse.Namespace:
     parser.add_argument(
         "--bank",
         type=str,
-        default="millenium",
+        default="millennium",
         required=False,
         choices=SUPPORTED_BANKS,
-        help="from what bank is the csv file, defaults to millenium",
+        help="from what bank is the csv file, defaults to millennium",
     )
 
     return parser.parse_args(argv)

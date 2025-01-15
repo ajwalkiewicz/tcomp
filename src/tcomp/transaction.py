@@ -21,7 +21,7 @@ from pydantic.dataclasses import dataclass
 from tcomp.error import UnsupportedBankError
 
 TIMEDELTA = timedelta(days=3)
-"""Default timedelat - used for equility operator in Transaction class"""
+"""Default timedelta - used for equality operator in Transaction class"""
 
 
 @dataclass(slots=True, frozen=True)
@@ -37,37 +37,28 @@ class Transaction:
         TypeError: If equality operator is used on a different type than Transaction.
     """
 
-    date: str | datetime
+    date: datetime
     amount: int | float
     description: str = ""
     _delta: timedelta = field(default=TIMEDELTA, init=False, repr=False)
 
     def __post_init__(self):
-        if isinstance(self.date, str):
-            object.__setattr__(self, "date", datetime.fromisoformat(self.date))
+        object.__setattr__(self, "amount", int(self.amount * 1000))
 
-        if isinstance(self.amount, float):
-            object.__setattr__(self, "amount", int(self.amount * 1000))
-
-    def __eq__(self, other: "Transaction") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check equality between two Transaction instances.
 
-        Transactions are equal if their ammount are the same and the difference
+        Transactions are equal if their amount are the same and the difference
         between dates is smaller or equal to _delta.
 
         Args:
-            other (Transaction): The other transaction to compare against.
+            other (object): The other transaction to compare against.
 
         Returns:
             bool: True if transactions are equivalent, False otherwise.
-
-        Raises:
-            TypeError: If 'other' is not an instance of Transaction.
         """
-        if not isinstance(other, Transaction):
-            raise TypeError(
-                f"Cannot compare '{type(self).__name__}' to '{type(other).__name__}'"
-            )
+        if not isinstance(other, type(self)):
+            return False
 
         return (
             self.amount == other.amount and abs(self.date - other.date) <= self._delta
@@ -83,17 +74,17 @@ class Transaction:
 
 
 class TransactionCreator(ABC):
-    """Absctract Transaction creator class."""
+    """Abstract Transaction creator class."""
 
     @staticmethod
     @abstractmethod
     def create_transaction(row: dict) -> Transaction: ...
 
 
-class MilleniumTransactionCreator(TransactionCreator):
+class MillenniumTransactionCreator(TransactionCreator):
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
-        """Create transactions from Millenium bank CSV file.
+        """Create transactions from Millennium bank CSV file.
 
         Args:
             row: Dict representing a row from csv.DictReader.
@@ -139,7 +130,7 @@ class SantanderTransactionCreator(TransactionCreator):
         """
         date = datetime.strptime(row["date"], "%d-%m-%Y")
         return Transaction(
-            date=date.isoformat(),
+            date=date,
             amount=float(row["amount"].replace(",", ".")),
             description=row["place"],
         )
@@ -185,7 +176,7 @@ def transactions_from_json(file: str) -> list[Transaction]:
     ]
 
 
-def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transaction]:
+def transactions_from_csv(file: str, bank: str = "millennium") -> list[Transaction]:
     """Create a list of transactions from csv file.
 
     Args:
@@ -195,8 +186,8 @@ def transactions_from_csv(file: str, bank: str = "millenium") -> list[Transactio
     Returns:
         List of transactions.
     """
-    creator: TransactionCreator = {
-        "millenium": MilleniumTransactionCreator,
+    creator: type[TransactionCreator] | None = {
+        "millennium": MillenniumTransactionCreator,
         "pkobp": PkoBpTransactionCreator,
         "revolut": RevolutTransactionCreator,
         "santander": SantanderTransactionCreator,
