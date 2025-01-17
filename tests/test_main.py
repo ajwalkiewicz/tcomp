@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from tcomp.__main__ import main
-from tcomp.transaction import BankManager, Transaction, TransactionManager
+from tcomp.transaction import BankManager, Transaction
 
 
 def get_supported_banks_choice():

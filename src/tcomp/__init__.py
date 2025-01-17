@@ -11,6 +11,7 @@ Functions:
     transactions_from_csv: Create a list of transactions from csv file.
     transactions_from_json: Create a list of transactions from json file.
 """
+
 from importlib.metadata import version
 
 from tcomp.diff import Diff, compare

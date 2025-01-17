@@ -18,10 +18,8 @@ from datetime import datetime, timedelta
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Type
-from uuid import UUID
 
 from pydantic.dataclasses import dataclass
-from uynab.model.transaction import NewTransaction
 
 from tcomp.error import UnsupportedBankError
 
