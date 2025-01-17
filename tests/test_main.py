@@ -6,8 +6,8 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from tcomp.__main__ import SUPPORTED_BANKS, main
-from tcomp.transaction import Transaction
+from tcomp.__main__ import main
+from tcomp.transaction import BankManager, Transaction, TransactionManager
 
 
 def get_supported_banks_choice():
@@ -20,35 +20,45 @@ def get_supported_banks_choice():
     See this PR: https://github.com/python/cpython/pull/117766
     """
     if sys.version_info < (3, 12, 8):
-        return ", ".join(f"'{bank}'" for bank in SUPPORTED_BANKS)
+        return ", ".join(f"'{bank}'" for bank in BankManager.SUPPORTED_BANKS)
     else:
-        return ", ".join(f"{bank}" for bank in SUPPORTED_BANKS)
+        return ", ".join(f"{bank}" for bank in BankManager.SUPPORTED_BANKS)
+
 
 class TestMainFunction(unittest.TestCase):
     @patch("sys.stdout", new_callable=StringIO)
-    @patch("tcomp.transaction.transactions_from_json")
-    @patch("tcomp.transaction.transactions_from_csv")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_json")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_csv")
     def test_main_function_positive(
         self,
         mock_transactions_from_csv: Mock,
         mock_transactions_from_json: Mock,
         mock_stdout: Mock,
     ):
+        self.maxDiff = None
         # Mock the transactions
         mock_transactions_from_json.return_value = [
             Transaction(
-                date=datetime.fromisoformat("2023-01-01"), amount=2000, description="Test Transaction A"
+                date=datetime.fromisoformat("2023-01-01"),
+                amount=2000,
+                description="Test Transaction A",
             ),
             Transaction(
-                date=datetime.fromisoformat("2023-01-02"), amount=3000, description="Test Transaction B"
+                date=datetime.fromisoformat("2023-01-02"),
+                amount=3000,
+                description="Test Transaction B",
             ),
         ]
         mock_transactions_from_csv.return_value = [
             Transaction(
-                date=datetime.fromisoformat("2023-01-01"), amount=2000, description="Test Transaction A"
+                date=datetime.fromisoformat("2023-01-01"),
+                amount=2000,
+                description="Test Transaction A",
             ),
             Transaction(
-                date=datetime.fromisoformat("2023-01-03"), amount=4000, description="Test Transaction C"
+                date=datetime.fromisoformat("2023-01-03"),
+                amount=4000,
+                description="Test Transaction C",
             ),
         ]
 
@@ -77,8 +87,8 @@ class TestMainFunction(unittest.TestCase):
         )
 
     @patch("sys.stdout", new_callable=StringIO)
-    @patch("tcomp.transaction.transactions_from_json")
-    @patch("tcomp.transaction.transactions_from_csv")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_json")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_csv")
     def test_main_function_no_transactions(
         self,
         mock_transactions_from_csv: Mock,
@@ -110,8 +120,8 @@ class TestMainFunction(unittest.TestCase):
             mock_stdout.getvalue(),
         )
 
-    @patch("tcomp.transaction.transactions_from_json")
-    @patch("tcomp.transaction.transactions_from_csv")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_json")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_csv")
     def test_main_function_invalid_file(
         self,
         mock_transactions_from_csv: Mock,
@@ -123,8 +133,8 @@ class TestMainFunction(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             main(["invalid_file_a.json", "file_b.csv", "--bank=millennium"])
 
-    @patch("tcomp.transaction.transactions_from_json")
-    @patch("tcomp.transaction.transactions_from_csv")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_json")
+    @patch("tcomp.transaction.TransactionManager.transactions_from_csv")
     def test_main_function_invalid_csv(
         self, mock_transactions_from_csv, mock_transactions_from_json
     ):
@@ -148,7 +158,7 @@ class TestMainFunction(unittest.TestCase):
         with self.assertRaises(SystemExit):
             main(["file_a.json", "file_b.csv", "--bank=invalid_bank"])
 
-        supported_bank_options = r"{" + ",".join(SUPPORTED_BANKS) + r"}"
+        supported_bank_options = r"{" + ",".join(BankManager.SUPPORTED_BANKS) + r"}"
         supported_banks_choice = get_supported_banks_choice()
 
         expected_output = (

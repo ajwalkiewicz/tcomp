@@ -15,13 +15,51 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import field
 from datetime import datetime, timedelta
+from io import TextIOWrapper
+from pathlib import Path
+from typing import Type
+from uuid import UUID
 
 from pydantic.dataclasses import dataclass
+from uynab.model.transaction import NewTransaction
 
 from tcomp.error import UnsupportedBankError
 
 TIMEDELTA = timedelta(days=3)
 """Default timedelta - used for equality operator in Transaction class"""
+
+
+class classproperty:
+    """A helper class for creating class properties
+    See: https://stackoverflow.com/questions/76249636/class-properties-in-python-3-11
+    """
+
+    def __init__(self, func):
+        self.fget = func
+
+    def __get__(self, instance, owner):
+        return self.fget(owner)
+
+
+class BankManager:
+    SUPPORTED_BANKS: list[str] = []
+    CREATORS: dict[str, Type["TransactionCreator"]] = {}
+
+    @classmethod
+    def add_to_supported(
+        cls, creator: Type["TransactionCreator"]
+    ) -> Type["TransactionCreator"]:
+        if not isinstance(creator.bank, str):
+            raise ValueError(
+                f"{creator.__name__}.bank must return string. "
+                "Use @classproperty decorator from tcomp.transaction module. "
+                "Or use class attribute 'bank' instead."
+            )
+
+        cls.SUPPORTED_BANKS.append(creator.bank)
+        cls.CREATORS[creator.bank] = creator
+
+        return creator
 
 
 @dataclass(slots=True, frozen=True)
@@ -80,8 +118,21 @@ class TransactionCreator(ABC):
     @abstractmethod
     def create_transaction(row: dict) -> Transaction: ...
 
+    @classproperty
+    @abstractmethod
+    def bank(cls) -> str: ...
 
+    @staticmethod
+    def get_reader(fd: TextIOWrapper) -> csv.DictReader:
+        return csv.DictReader(fd)
+
+
+@BankManager.add_to_supported
 class MillenniumTransactionCreator(TransactionCreator):
+    @classproperty
+    def bank(cls):
+        return "millennium"
+
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create transactions from Millennium bank CSV file.
@@ -99,7 +150,12 @@ class MillenniumTransactionCreator(TransactionCreator):
         )
 
 
+@BankManager.add_to_supported
 class PkoBpTransactionCreator(TransactionCreator):
+    @classproperty
+    def bank(cls):
+        return "pkobp"
+
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create transaction from PKO BP bank CSV file.
@@ -117,7 +173,14 @@ class PkoBpTransactionCreator(TransactionCreator):
         )
 
 
+@BankManager.add_to_supported
 class SantanderTransactionCreator(TransactionCreator):
+    SANTANDER_FIELDS = ["_", "date", "place", "_", "_", "amount"]
+
+    @classproperty
+    def bank(cls):
+        return "santander"
+
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create a Transaction object from a row in a Santander PL bank CSV file.
@@ -135,8 +198,20 @@ class SantanderTransactionCreator(TransactionCreator):
             description=row["place"],
         )
 
+    @staticmethod
+    def get_reader(fd: TextIOWrapper) -> csv.DictReader:
+        next(fd)
+        return csv.DictReader(
+            fd, fieldnames=SantanderTransactionCreator.SANTANDER_FIELDS
+        )
 
+
+@BankManager.add_to_supported
 class RevolutTransactionCreator(TransactionCreator):
+    @classproperty
+    def bank(cls):
+        return "revolut"
+
     @staticmethod
     def create_transaction(row: dict) -> Transaction:
         """Create a Transaction object from a row in a Revolut PL bank CSV file.
@@ -154,55 +229,71 @@ class RevolutTransactionCreator(TransactionCreator):
         )
 
 
-def transactions_from_json(file: str) -> list[Transaction]:
-    """Create a list of transactions from json file.
+class TransactionManager:
+    DEFAULT_CREATOR: type[TransactionCreator] = MillenniumTransactionCreator
 
-    Args:
-        file: Path to json file.
-
-    Returns:
-        List of transactions
-    """
-    with open(file, "r") as f:
-        transactions = json.load(f)["data"]["transactions"]
-
-    return [
-        Transaction(
-            date=transaction["date"],
-            amount=transaction["amount"],
-            description=f"{transaction['payee_name']} {transaction['memo'] or ''}",
-        )
-        for transaction in transactions
-    ]
-
-
-def transactions_from_csv(file: str, bank: str = "millennium") -> list[Transaction]:
-    """Create a list of transactions from csv file.
-
-    Args:
-        file: Path to csv file.
-        bank: From what ban csv was generated.
-
-    Returns:
-        List of transactions.
-    """
-    creator: type[TransactionCreator] | None = {
-        "millennium": MillenniumTransactionCreator,
-        "pkobp": PkoBpTransactionCreator,
-        "revolut": RevolutTransactionCreator,
-        "santander": SantanderTransactionCreator,
-    }.get(bank)
-
-    if creator is None:
-        raise UnsupportedBankError(f"Bank not supported: '{bank}'")
-
-    SANTANDER_FIELDS = ["_", "date", "place", "_", "_", "amount"]
-
-    with open(file, "r", newline="", encoding="utf-8", errors="replace") as fd:
-        if bank == "santander":
-            next(fd)
-            reader = csv.DictReader(fd, fieldnames=SANTANDER_FIELDS)
+    def __init__(self, creator: type[TransactionCreator] | str | None = None):
+        if creator is None:
+            self.creator = TransactionManager.DEFAULT_CREATOR
         else:
-            reader = csv.DictReader(fd)
+            self.set_creator(creator)
 
-        return [creator.create_transaction(row) for row in reader]
+    def transactions_from_json(self, file: Path) -> list[Transaction]:
+        """Create a list of transactions from json file.
+
+        Args:
+            file: Path to json file.
+
+        Returns:
+            List of transactions
+        """
+        with open(file, "r") as fd:
+            transactions = json.load(fd)["data"]["transactions"]
+
+        return [
+            Transaction(
+                date=transaction["date"],
+                amount=transaction["amount"],
+                description=f"{transaction['payee_name']} {transaction['memo'] or ''}",
+            )
+            for transaction in transactions
+        ]
+
+    def transactions_from_csv(self, file: Path) -> list[Transaction]:
+        """Create a list of transactions from csv file.
+
+        Args:
+            file: Path to csv file.
+
+        Returns:
+            List of transactions.
+        """
+
+        with open(file, "r", newline="", encoding="utf-8", errors="replace") as fd:
+            reader = self.creator.get_reader(fd)
+
+            return [self.creator.create_transaction(row) for row in reader]
+
+    def set_creator(self, bank: Type[TransactionCreator] | str) -> None:
+        """
+        Sets the transaction creator for the bank.
+
+        Args:
+            bank (Type[TransactionCreator] | str): The bank's transaction creator class or a string representing the bank.
+
+        Raises:
+            UnsupportedBankError: If the bank is not supported.
+
+        Returns:
+            None
+        """
+        if isinstance(bank, type) and issubclass(bank, TransactionCreator):
+            self.creator = bank
+            return
+
+        creator: Type[TransactionCreator] | None = BankManager.CREATORS.get(bank)
+
+        if creator is None:
+            raise UnsupportedBankError(f"Bank not supported: '{bank}'")
+
+        self.creator = creator

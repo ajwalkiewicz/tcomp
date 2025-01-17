@@ -11,19 +11,22 @@ Functions:
     transactions_from_csv: Create a list of transactions from csv file.
     transactions_from_json: Create a list of transactions from json file.
 """
+from importlib.metadata import version
 
 from tcomp.diff import Diff, compare
-from tcomp.transaction import Transaction, transactions_from_csv, transactions_from_json
+from tcomp.transaction import (
+    BankManager,
+    Transaction,
+    TransactionManager,
+)
 
-__version__ = "0.0.1"
+__version__ = version("tcomp")
 __author__ = "Adam Walkiewicz"
 
 __all__ = [
-    "Diff", 
-    "compare",
+    "BankManager",
+    "Diff",
     "Transaction",
-    "transactions_from_csv",
-    "transactions_from_json",
+    "TransactionManager",
+    "compare",
 ]
-
-SUPPORTED_BANKS = ("millennium", "pkobp", "santander", "revolut")
