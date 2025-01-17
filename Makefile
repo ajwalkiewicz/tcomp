@@ -13,11 +13,6 @@ check-uv:
 	fi
 
 test: tests/test_*.py
-	@echo "Running tests on python3.10"
-	@if ! uv run --python 3.10 pytest; then \
-		echo "Tests failed. Building project not possible."; \
-		exit 1; \
-	fi
 	@echo "Running tests on python3.11"
 	@if ! uv run --python 3.11 pytest; then \
 		echo "Tests failed. Building project not possible."; \
@@ -25,6 +20,11 @@ test: tests/test_*.py
 	fi
 	@echo "Running tests on python3.12"
 	@if ! uv run --python 3.12 pytest; then \
+		echo "Tests failed. Building project not possible."; \
+		exit 1; \
+	fi
+	@echo "Running tests on python3.13"
+	@if ! uv run --python 3.13 pytest; then \
 		echo "Tests failed. Building project not possible."; \
 		exit 1; \
 	fi
@@ -52,5 +52,5 @@ check:
 	uv run ruff check
 
 type:
-	@echo "checking typing with mypy..."
+	@echo "Checking typing with mypy..."
 	uv run mypy .

@@ -36,6 +36,7 @@ python -m tcomp [file_a] [file_b] [--bank]
 - `--bank`: (Optional) Specify the bank for the CSV file. Defaults to "millennium". The available options are:
   - `millennium`
   - `pkobp`
+  - `revolut`
   - `santander`
 
 ### Example
