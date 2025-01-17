@@ -14,8 +14,7 @@ from tcomp.transaction import (
     RevolutTransactionCreator,
     SantanderTransactionCreator,
     Transaction,
-    transactions_from_csv,
-    transactions_from_json,
+    TransactionManager,
 )
 
 
@@ -248,14 +247,16 @@ class TestRevolutTransaction(unittest.TestCase):
         }
         transaction = self.transaction_creator.create_transaction(row)
         self.assertIsInstance(transaction, Transaction)
-        self.assertEqual(transaction.date, datetime.fromisoformat("2024-11-01 02:00:12"))
+        self.assertEqual(
+            transaction.date, datetime.fromisoformat("2024-11-01 02:00:12")
+        )
         self.assertEqual(transaction.amount, 174050)
         self.assertEqual(transaction.description, "Test description")
 
     def test_create_transaction_invalid_date_format(self):
         row = {
             "Product": "Current",
-            "Started Date": "03-15-2023", # Invalid date format
+            "Started Date": "03-15-2023",  # Invalid date format
             "Description": "Test description",
             "Amount": "-174.05",
         }
@@ -305,12 +306,14 @@ class TestRevolutTransaction(unittest.TestCase):
     def test_create_transaction_boundary_date(self):
         row = {
             "Product": "Current",
-            "Started Date": "2020-02-29 02:00:12", # Leap year
+            "Started Date": "2020-02-29 02:00:12",  # Leap year
             "Description": "Test description",
             "Amount": "-174.05",
         }
         transaction = self.transaction_creator.create_transaction(row)
-        self.assertEqual(transaction.date, datetime.fromisoformat("2020-02-29 02:00:12"))
+        self.assertEqual(
+            transaction.date, datetime.fromisoformat("2020-02-29 02:00:12")
+        )
 
     def test_create_transaction_nonexistent_date(self):
         row = {
@@ -324,6 +327,9 @@ class TestRevolutTransaction(unittest.TestCase):
 
 
 class TestTransactionsFromJson(unittest.TestCase):
+    def setUp(self):
+        self.tm = TransactionManager()
+
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -335,7 +341,7 @@ class TestTransactionsFromJson(unittest.TestCase):
             date="2023-01-01", amount=100, description="Payee1 Test memo"
         )
 
-        result = transactions_from_json("fake_path.json")
+        result = self.tm.transactions_from_json("fake_path.json")
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].date, expected_transaction.date)
@@ -349,7 +355,7 @@ class TestTransactionsFromJson(unittest.TestCase):
     )
     def test_transactions_from_json_empty(self, mock_file):
         # Given an empty transactions list, we expect an empty list
-        result = transactions_from_json("fake_path.json")
+        result = self.tm.transactions_from_json("fake_path.json")
 
         self.assertEqual(result, [])
 
@@ -364,7 +370,7 @@ class TestTransactionsFromJson(unittest.TestCase):
             date="2023-01-01", amount=100, description="Payee1 "
         )
 
-        result = transactions_from_json("fake_path.json")
+        result = self.tm.transactions_from_json("fake_path.json")
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].description, expected_transaction.description)
@@ -377,23 +383,27 @@ class TestTransactionsFromJson(unittest.TestCase):
     def test_transactions_from_json_invalid_amount(self, mock_file):
         # Given an invalid amount type, we expect a ValueError
         with self.assertRaises(ValueError):
-            transactions_from_json("fake_path.json")
+            self.tm.transactions_from_json("fake_path.json")
 
     @patch("builtins.open", side_effect=FileNotFoundError)
     def test_transactions_from_json_file_not_found(self, mock_file):
         # Test handling of file not found error
         with self.assertRaises(FileNotFoundError):
-            transactions_from_json("non_existent_file.json")
+            self.tm.transactions_from_json("non_existent_file.json")
 
 
 class TestTransactionsFromCsv(unittest.TestCase):
+    def setUp(self):
+        self.tm = TransactionManager()
+
     @patch(
         "builtins.open",
         new_callable=mock_open,
         read_data="Data transakcji,Obciążenia,Opis\n2023-01-01,100,Test Place\n",
     )
     def test_transactions_from_csv_millennium(self, mock_file):
-        transactions = transactions_from_csv("dummy_path.csv", "millennium")
+        self.tm.set_creator("millennium")
+        transactions = self.tm.transactions_from_csv("dummy_path.csv")
         self.assertEqual(len(transactions), 1)
         self.assertEqual(transactions[0].date, datetime.fromisoformat("2023-01-01"))
         self.assertEqual(transactions[0].amount, 100000)
@@ -405,7 +415,8 @@ class TestTransactionsFromCsv(unittest.TestCase):
         read_data="Data waluty,Kwota,Opis transakcji\n2023-01-01,100.00,Test Place\n",
     )
     def test_transactions_from_csv_pkobp(self, mock_file):
-        transactions = transactions_from_csv("dummy_path.csv", "pkobp")
+        self.tm.set_creator("pkobp")
+        transactions = self.tm.transactions_from_csv("dummy_path.csv")
         self.assertEqual(len(transactions), 1)
         self.assertEqual(transactions[0].date, datetime.fromisoformat("2023-01-01"))
         self.assertEqual(transactions[0].description, "Test Place")
@@ -417,7 +428,8 @@ class TestTransactionsFromCsv(unittest.TestCase):
         read_data='first,row,is,skipped,anyway\n_,01-01-2023,Test Place,_,_,"100,00"\n',
     )
     def test_transactions_from_csv_santander(self, mock_file):
-        transactions = transactions_from_csv("dummy_path.csv", "santander")
+        self.tm.set_creator("santander")
+        transactions = self.tm.transactions_from_csv("dummy_path.csv")
         self.assertEqual(len(transactions), 1)
         self.assertEqual(transactions[0].date, datetime.fromisoformat("2023-01-01"))
         self.assertEqual(transactions[0].description, "Test Place")
@@ -426,23 +438,27 @@ class TestTransactionsFromCsv(unittest.TestCase):
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data='Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance\nCARD_PAYMENT,Current,2024-11-30 07:46:10,2024-12-01 08:35:20,Test Place,100,00,0.00,PLN,COMPLETED,648.00',
+        read_data="Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance\nCARD_PAYMENT,Current,2024-11-30 07:46:10,2024-12-01 08:35:20,Test Place,100,00,0.00,PLN,COMPLETED,648.00",
     )
     def test_transactions_from_csv_revolut(self, mock_file):
-        transactions = transactions_from_csv("dummy_path.csv", "revolut")
+        self.tm.set_creator("revolut")
+        transactions = self.tm.transactions_from_csv("dummy_path.csv")
         self.assertEqual(len(transactions), 1)
-        self.assertEqual(transactions[0].date, datetime.fromisoformat("2024-11-30 07:46:10"))
+        self.assertEqual(
+            transactions[0].date, datetime.fromisoformat("2024-11-30 07:46:10")
+        )
         self.assertEqual(transactions[0].description, "Test Place")
         self.assertEqual(transactions[0].amount, 100000)
 
     @patch("builtins.open", new_callable=mock_open, read_data="")
     def test_transactions_from_csv_empty_file(self, mock_file):
-        transactions = transactions_from_csv("dummy_path.csv", "millennium")
+        self.tm.set_creator("millennium")
+        transactions = self.tm.transactions_from_csv("dummy_path.csv")
         self.assertEqual(transactions, [])
 
-    def test_transactions_from_csv_unsupported_bank(self):
+    def test_transactions_manager_unsupported_bank(self):
         with self.assertRaises(UnsupportedBankError):
-            transactions_from_csv("dummy_path.csv", "unsupported_bank")
+            self.tm.set_creator("unsupported_bank")
 
     @patch(
         "builtins.open",
@@ -451,9 +467,11 @@ class TestTransactionsFromCsv(unittest.TestCase):
     )
     def test_transactions_from_csv_invalid_data(self, mock_file):
         with self.assertRaises(KeyError):
-            transactions_from_csv("dummy_path.csv", "millennium")
+            self.tm.set_creator("revolut")
+            self.tm.transactions_from_csv("dummy_path.csv")
 
         with self.assertRaises(KeyError):
-            transactions_from_csv("dummy_path.csv", "pkobp")
+            self.tm.set_creator("pkobp")
+            self.tm.transactions_from_csv("dummy_path.csv")
 
         # TODO: add test for santander

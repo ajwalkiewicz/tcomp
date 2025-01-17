@@ -13,17 +13,19 @@ Functions:
 """
 
 from tcomp.diff import Diff, compare
-from tcomp.transaction import Transaction, transactions_from_csv, transactions_from_json
+from tcomp.transaction import (
+    BankManager,
+    Transaction,
+    TransactionManager,
+)
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __author__ = "Adam Walkiewicz"
 
 __all__ = [
-    "Diff", 
-    "compare",
+    "BankManager",
+    "Diff",
     "Transaction",
-    "transactions_from_csv",
-    "transactions_from_json",
+    "TransactionManager",
+    "compare",
 ]
-
-SUPPORTED_BANKS = ("millennium", "pkobp", "santander", "revolut")

@@ -10,7 +10,7 @@ import argparse
 
 from tabulate import tabulate
 
-from tcomp import SUPPORTED_BANKS, compare, transaction
+from tcomp import compare, transaction
 
 
 def parse_arguments(argv: None | list[str] = None) -> argparse.Namespace:
@@ -32,7 +32,7 @@ def parse_arguments(argv: None | list[str] = None) -> argparse.Namespace:
         type=str,
         default="millennium",
         required=False,
-        choices=SUPPORTED_BANKS,
+        choices=transaction.BankManager.SUPPORTED_BANKS,
         help="from what bank is the csv file, defaults to millennium",
     )
 
@@ -43,8 +43,10 @@ def main(argv: None | list[str] = None):
     args = parse_arguments(argv=argv)
     file_a, file_b, bank = args.file_a, args.file_b, args.bank
 
-    transactions_a = transaction.transactions_from_json(file_a)
-    transactions_b = transaction.transactions_from_csv(file_b, bank=bank)
+    transaction_manager = transaction.TransactionManager()
+    transaction_manager.set_creator(bank)
+    transactions_a = transaction_manager.transactions_from_json(file_a)
+    transactions_b = transaction_manager.transactions_from_csv(file_b)
 
     diff = compare(transactions_a, transactions_b)
 
