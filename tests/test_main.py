@@ -67,9 +67,7 @@ class TestMainFunction(unittest.TestCase):
 
         # Assertions
         mock_transactions_from_json.assert_called_once_with("file_a.json")
-        mock_transactions_from_csv.assert_called_once_with(
-            "file_b.csv", bank="millennium"
-        )
+        mock_transactions_from_csv.assert_called_once_with("file_b.csv")
 
         self.assertEqual(
             """\
@@ -104,9 +102,7 @@ class TestMainFunction(unittest.TestCase):
 
         # Assertions
         mock_transactions_from_json.assert_called_once_with("file_a.json")
-        mock_transactions_from_csv.assert_called_once_with(
-            "file_b.csv", bank="millennium"
-        )
+        mock_transactions_from_csv.assert_called_once_with("file_b.csv")
         self.assertEqual(
             """\
 # In file_a.json but not in file_b.csv:

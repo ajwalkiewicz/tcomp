@@ -44,8 +44,9 @@ def main(argv: None | list[str] = None):
     file_a, file_b, bank = args.file_a, args.file_b, args.bank
 
     transaction_manager = transaction.TransactionManager()
+    transaction_manager.set_creator(bank)
     transactions_a = transaction_manager.transactions_from_json(file_a)
-    transactions_b = transaction_manager.transactions_from_csv(file_b, bank=bank)
+    transactions_b = transaction_manager.transactions_from_csv(file_b)
 
     diff = compare(transactions_a, transactions_b)
 

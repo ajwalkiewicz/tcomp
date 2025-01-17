@@ -12,8 +12,6 @@ Functions:
     transactions_from_json: Create a list of transactions from json file.
 """
 
-from importlib.metadata import version
-
 from tcomp.diff import Diff, compare
 from tcomp.transaction import (
     BankManager,
@@ -21,7 +19,7 @@ from tcomp.transaction import (
     TransactionManager,
 )
 
-__version__ = version("tcomp")
+__version__ = "0.1.0"
 __author__ = "Adam Walkiewicz"
 
 __all__ = [
